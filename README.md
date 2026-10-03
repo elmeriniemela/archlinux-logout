@@ -1,8 +1,7 @@
 # ArchLinux Logout
 
-Personal fork of [ArchLinux Logout](https://github.com/erikdubois/archlinux-logout),
-maintained at <https://github.com/elmeriniemela/archlinux-logout> for this dotfiles
-setup. It provides a GTK logout menu for Awesome WM and a wallpaper selector for
+Personal fork of [ArchLinux Logout](https://github.com/erikdubois/archlinux-logout).
+It provides a GTK logout menu for Awesome WM and a wallpaper selector for
 betterlockscreen.
 
 Build and install from this checkout with:
