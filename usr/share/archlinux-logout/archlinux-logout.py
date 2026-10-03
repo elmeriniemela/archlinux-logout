@@ -10,7 +10,6 @@ import Functions as fn
 import threading
 import signal
 import os
-from distro import id
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
@@ -20,19 +19,10 @@ from gi.repository import Gtk, GdkPixbuf, Gdk, Wnck, GLib, GdkX11  # noqa
 
 
 class TransparentWindow(Gtk.Window):
-    distr = id()
-
     cmd_shutdown = "systemctl poweroff"
     cmd_restart = "systemctl reboot"
     cmd_suspend = "systemctl suspend"
     cmd_hibernate = "systemctl hibernate"
-
-    if distr == "artix":
-        if os.path.isfile("/usr/bin/loginctl"):
-            cmd_shutdown = "loginctl poweroff"
-            cmd_restart = "loginctl reboot"
-            cmd_suspend = "loginctl suspend"
-            cmd_hibernate = "loginctl hibernate"
 
     cmd_lock = 'betterlockscreen -l dim -- --time-str="%H:%M"'
     wallpaper = "/usr/share/archlinux-betterlockscreen/wallpapers/wallpaper.jpg"
@@ -185,60 +175,18 @@ class TransparentWindow(Gtk.Window):
         self.fullscreen_on_monitor(self.screen, 0)
 
     def on_save_clicked(self, widget):
-        try:
-            with open(
-                fn.home + "/.config/archlinux-logout/archlinux-logout.conf", "r"
-            ) as f:
-                lines = f.readlines()
-                f.close()
+        config_path = fn.home + "/.config/archlinux-logout/archlinux-logout.conf"
+        with open(config_path) as f:
+            lines = f.readlines()
 
-            pos_opacity = fn._get_position(lines, "opacity")
-            pos_size = fn._get_position(lines, "icon_size")
-            pos_theme = fn._get_position(lines, "theme=")
-            pos_font = fn._get_position(lines, "font_size=")
+        lines[fn._get_position(lines, "opacity")] = "opacity=" + str(int(self.hscale.get_value())) + "\n"
+        lines[fn._get_position(lines, "icon_size")] = "icon_size=" + str(int(self.icons.get_value())) + "\n"
+        lines[fn._get_position(lines, "theme=")] = "theme=" + self.themes.get_active_text() + "\n"
+        lines[fn._get_position(lines, "font_size=")] = "font_size=" + str(int(self.fonts.get_value())) + "\n"
 
-            lines[pos_opacity] = "opacity=" + str(int(self.hscale.get_value())) + "\n"
-            lines[pos_size] = "icon_size=" + str(int(self.icons.get_value())) + "\n"
-            lines[pos_theme] = "theme=" + self.themes.get_active_text() + "\n"
-            lines[pos_font] = "font_size=" + str(int(self.fonts.get_value())) + "\n"
-
-            with open(
-                fn.home + "/.config/archlinux-logout/archlinux-logout.conf", "w"
-            ) as f:
-                f.writelines(lines)
-                f.close()
-            self.popover.popdown()
-        except Exception as e:
-            fn.os.unlink(fn.home + "/.config/archlinux-logout/archlinux-logout.conf")
-            if not fn.os.path.isfile(
-                fn.home + "/.config/archlinux-logout/archlinux-logout.conf"
-            ):
-                shutil.copy(
-                    fn.root_config,
-                    fn.home + "/.config/archlinux-logout/archlinux-logout.conf",
-                )
-            with open(
-                fn.home + "/.config/archlinux-logout/archlinux-logout.conf", "r"
-            ) as f:
-                lines = f.readlines()
-                f.close()
-
-            pos_opacity = fn._get_position(lines, "opacity")
-            pos_size = fn._get_position(lines, "icon_size")
-            pos_theme = fn._get_position(lines, "theme=")
-            pos_font = fn._get_position(lines, "font_size=")
-
-            lines[pos_opacity] = "opacity=" + str(int(self.hscale.get_value())) + "\n"
-            lines[pos_size] = "icon_size=" + str(int(self.icons.get_value())) + "\n"
-            lines[pos_theme] = "theme=" + self.themes.get_active_text() + "\n"
-            lines[pos_font] = "font_size=" + str(int(self.fonts.get_value())) + "\n"
-
-            with open(
-                fn.home + "/.config/archlinux-logout/archlinux-logout.conf", "w"
-            ) as f:
-                f.writelines(lines)
-                f.close()
-            self.popover.popdown()
+        with open(config_path, "w") as f:
+            f.writelines(lines)
+        self.popover.popdown()
 
     def on_mouse_in(self, widget, event, data):
         if data == self.binds.get("shutdown"):

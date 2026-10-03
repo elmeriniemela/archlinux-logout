@@ -2,7 +2,7 @@
 # =                  Author: Brad Heffernan                       =
 # =================================================================
 
-from Functions import base_dir, os
+from Functions import base_dir
 
 
 def GUI(self, Gtk, GdkPixbuf, Gdk, th, fn):
@@ -81,44 +81,6 @@ def GUI(self, Gtk, GdkPixbuf, Gdk, th, fn):
     self.btnset = Gtk.Button(label="Apply Image")
     self.btnset.connect("clicked", self.on_apply_clicked)
     hbox2.pack_end(self.btnset, False, False, 0)
-
-    # ==========================================================
-    #                       PATREON
-    # ==========================================================
-
-    # pE2 = Gtk.EventBox()
-    # pE3 = Gtk.EventBox()
-
-    # pbp2 = GdkPixbuf.Pixbuf().new_from_file_at_size(
-    #     os.path.join(base_dir, 'images/patreon.png'), 28, 28)
-    # pimage2 = Gtk.Image().new_from_pixbuf(pbp2)
-
-    # pbp3 = GdkPixbuf.Pixbuf().new_from_file_at_size(
-    #     os.path.join(base_dir, 'images/paypal.png'), 28, 28)
-    # pimage3 = Gtk.Image().new_from_pixbuf(pbp3)
-
-    # pE2.add(pimage2)
-    # pE3.add(pimage3)
-
-    # pE2.connect("button_press_event", self.on_social_clicked,
-    #             "https://www.patreon.com/hefftor")
-
-    # pE3.connect("button_press_event", self.on_social_clicked,
-    #             "https://streamlabs.com/bradheffernan1")
-
-    # pE2.set_property("has-tooltip", True)
-    # pE3.set_property("has-tooltip", True)
-
-    # pE2.connect("query-tooltip", self.tooltip_callback,
-    #             "Support Brad on Patreon")
-    # pE3.connect("query-tooltip", self.tooltip_callback,
-    #             "Buy Brad a coffee")
-
-    # hbox2.pack_start(pE2, False, False, 0)  # Patreon
-    # hbox2.pack_start(pE3, False, False, 0)  # Patreon
-    credits = Gtk.LinkButton(uri="", label="Credits")
-    credits.connect("clicked", self.on_support_clicked)
-    hbox2.pack_start(credits, False, False, 0)  # Patreon
 
     # ==========================================================
     #                       STATUS

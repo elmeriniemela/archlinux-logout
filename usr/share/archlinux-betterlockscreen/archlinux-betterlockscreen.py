@@ -7,10 +7,7 @@
 import gi
 import Functions as fn
 import GUI
-import Support
 import threading as th
-import webbrowser
-import Splash
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib # noqa
 
@@ -55,18 +52,12 @@ class Main(Gtk.Window):
 
         self.hbox3.pack_start(scrolled, True, True, 0)
 
-        splScr = Splash.splashScreen()
-
-        while Gtk.events_pending():
-            Gtk.main_iteration()
         # self.create_flowbox(self.loc.get_text())
         t = th.Thread(target=self.create_flowbox,
                       args=(self.loc.get_text(), False))
         t.daemon = True
         t.start()
         t.join()
-
-        splScr.destroy()
 
         GUI.GUI(self, Gtk, GdkPixbuf, Gdk, th, fn)
 
@@ -84,13 +75,6 @@ class Main(Gtk.Window):
                       args=(self.loc.get_text(), True))
         t.daemon = True
         t.start()
-
-    def on_support_clicked(self, widget):
-        sup = Support.Support(self)
-        response = sup.run()
-
-        if response == Gtk.ResponseType.DELETE_EVENT:
-            sup.destroy()
 
     def on_apply_clicked(self, widget):
         # print(str(int(self.blur.get_value())/100))
@@ -172,15 +156,11 @@ class Main(Gtk.Window):
                 if len(text) < 1:
                     paths = "/usr/share/archlinux-betterlockscreen/wallpapers/"
                     if not fn.os.path.isdir(paths):
-                        paths = "/usr/share/archlinux-betterlockscreen/wallpapers/"
-                    if not fn.os.path.isdir(paths):
                         return 0
                 else:
                     paths = text
         else:
             paths = "/usr/share/archlinux-betterlockscreen/wallpapers/"
-            if not fn.os.path.isdir(paths):
-                paths = "/usr/share/archlinux-betterlockscreen/wallpapers/"
             if not fn.os.path.isdir(paths):
                 return 0
 
@@ -207,26 +187,6 @@ class Main(Gtk.Window):
         except Exception as e:
             print(e)
         GLib.idle_add(self.status.set_text, "")
-
-    def on_social_clicked(self, widget, event, link):
-        t = th.Thread(target=self.weblink, args=(link,))
-        t.daemon = True
-        t.start()
-
-    def weblink(self, link):
-        webbrowser.open_new_tab(link)
-
-    def tooltip_callback(self, widget, x, y, keyboard_mode, tooltip, text):
-        tooltip.set_text(text)
-        return True
-
-    def MessageBox(self, title, message):
-        md = Gtk.MessageDialog(parent=self, flags=0,
-                               message_type=Gtk.MessageType.INFO,
-                               buttons=Gtk.ButtonsType.OK, text=title)
-        md.format_secondary_markup(message)
-        md.run()
-        md.destroy()
 
     def close(self, widget, data):
         fn.os.unlink("/tmp/archlinux-betterlock.lock")

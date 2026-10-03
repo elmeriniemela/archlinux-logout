@@ -3,7 +3,6 @@
 # =================================================================
 import os
 import subprocess
-import threading
 import psutil
 import gi
 from os.path import expanduser
@@ -15,27 +14,6 @@ home = expanduser("~")
 base_dir = os.path.dirname(os.path.realpath(__file__))
 config = home + "/.config/archlinux-betterlockscreen/"
 settings = "settings.conf"
-resolutions = [
-    "640x360",
-    "800x600",
-    "1024x768",
-    "1280x720",
-    "1280x800",
-    "1280x1024",
-    "1360x768",
-    "1366x768",
-    "1440x900",
-    "1536x864",
-    "1600x900",
-    "1680x1050",
-    "1920x1080",
-    "1920x1200",
-    "2048x1152",
-    "2560x1080",
-    "2560x1440",
-    "3440x1440",
-    "3840x2160"
-]
 # ================================================
 #                   GLOBALS
 # ================================================
