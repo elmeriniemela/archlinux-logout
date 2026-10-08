@@ -1,11 +1,11 @@
 pkgname=archlinux-logout
 pkgver=1
-pkgrel=2
+pkgrel=3
 pkgdesc='GTK logout menu and betterlockscreen wallpaper selector'
 arch=('any')
 url='https://github.com/elmeriniemela/archlinux-logout'
 license=('GPL-3.0-only')
-depends=('python' 'python-cairo' 'python-gobject' 'python-psutil' 'libwnck3' 'betterlockscreen')
+depends=('python' 'python-cairo' 'python-gobject' 'python-psutil' 'gtk-layer-shell' 'betterlockscreen')
 backup=('etc/archlinux-logout.conf')
 
 package() {

@@ -9,13 +9,15 @@ import GUI
 import Functions as fn
 import threading
 import signal
-import os
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-gi.require_version("Wnck", "3.0")
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, Wnck, GLib, GdkX11  # noqa
+from gi.repository import Gtk, GdkPixbuf, Gdk, GLib  # noqa
+
+if fn.sessionw:
+    gi.require_version("GtkLayerShell", "0.1")
+    from gi.repository import GtkLayerShell
 
 
 class TransparentWindow(Gtk.Window):
@@ -24,6 +26,7 @@ class TransparentWindow(Gtk.Window):
     cmd_suspend = "systemctl suspend"
     cmd_hibernate = "systemctl hibernate"
 
+    cmd_logout = "pkill awesome"
     cmd_lock = 'betterlockscreen -l dim -- --time-str="%H:%M"'
     wallpaper = "/usr/share/archlinux-betterlockscreen/wallpapers/wallpaper.jpg"
     d_buttons = [
@@ -57,11 +60,11 @@ class TransparentWindow(Gtk.Window):
         super(TransparentWindow, self).__init__(
             type=Gtk.WindowType.TOPLEVEL, title="ArchLinux Logout"
         )
-        # Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
-        # self.set_type_hint(Gdk.WindowTypeHint.DOCK)
-        self.set_keep_above(True)
-        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        # self.set_size_request(1200, 300)
+        if fn.sessionw:
+            self.configure_wayland()
+        else:
+            self.set_keep_above(True)
+            self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.connect("delete-event", self.on_close)
         self.connect("destroy", self.on_close)
         self.connect("draw", self.draw)
@@ -95,18 +98,28 @@ class TransparentWindow(Gtk.Window):
 
         fn.get_config(self, Gdk, Gtk, fn.config)
 
-        self.display_on_monitor()
+        if not fn.sessionw:
+            self.display_on_monitor()
 
         if self.buttons is None or self.buttons == [""]:
             self.buttons = self.d_buttons
 
         self.set_app_paintable(True)
-        self.present()
 
         GUI.GUI(self, Gtk, GdkPixbuf, fn.working_dir, fn.os, Gdk, fn)
-        if not fn.os.path.isfile("/tmp/archlinux-logout.lock"):
-            with open("/tmp/archlinux-logout.lock", "w") as f:
-                f.write("")
+
+    def configure_wayland(self):
+        if not GtkLayerShell.is_supported():
+            raise RuntimeError("Wayland logout menu requires a compositor with layer-shell support")
+        GtkLayerShell.init_for_window(self)
+        GtkLayerShell.set_namespace(self, "archlinux-logout")
+        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
+        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
+        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
+        GtkLayerShell.set_exclusive_zone(self, -1)
+        GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.EXCLUSIVE)
 
     def display_on_monitor(self):
         print("#### Archlinux Logout ####")
@@ -118,21 +131,7 @@ class TransparentWindow(Gtk.Window):
                 y = 0
                 display = None
 
-                session_type = os.environ.get("XDG_SESSION_TYPE")
-
-                if session_type == "wayland":
-                    print(
-                        "[WARN]: Session type = wayland, mouse position can't be tracked"
-                    )
-                elif session_type == "x11":
-                    print("[DEBUG]: Session type = x11")
-
-                # get the screen, x, y coordinates
                 screen, x, y = self.pointer.get_position()
-
-                # X11 compatibility only
-                # Wayland does not allow you to get the x,y coordinates
-                # defaults to showing on first monitor
 
                 if screen is not None and x != 0 and y != 0:
                     print(f"[DEBUG]: Mouse position x={x} y={y}")
@@ -164,7 +163,7 @@ class TransparentWindow(Gtk.Window):
         except Exception as e:
             print(f"[ERROR]: Exception in display_on_monitor(): {e}")
 
-    # fallback should only be used if the mouse position can't be captured such as when on wayland
+    # X11 fallback when the mouse position cannot be captured.
     def display_on_default(self):
         # default show on first monitor
         monitor = self.display.get_monitor(0)
@@ -419,35 +418,15 @@ class TransparentWindow(Gtk.Window):
             fn.button_active(self, data, GdkPixbuf)
 
         if data == self.binds.get("logout"):
-            command = fn._get_logout()
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            self.__exec_cmd(command)
-            Gtk.main_quit()
-
+            self.execute_command(self.cmd_logout)
         elif data == self.binds.get("restart"):
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            self.__exec_cmd(self.cmd_restart)
-            Gtk.main_quit()
-
+            self.execute_command(self.cmd_restart)
         elif data == self.binds.get("shutdown"):
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            self.__exec_cmd(self.cmd_shutdown)
-            Gtk.main_quit()
-
+            self.execute_command(self.cmd_shutdown)
         elif data == self.binds.get("suspend"):
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            self.__exec_cmd(self.cmd_suspend)
-            Gtk.main_quit()
-
+            self.execute_command(self.cmd_suspend)
         elif data == self.binds.get("hibernate"):
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            self.__exec_cmd(self.cmd_hibernate)
-            Gtk.main_quit()
+            self.execute_command(self.cmd_hibernate)
 
         elif data == self.binds.get("lock"):
             if self.cmd_lock.startswith("betterlockscreen") and not fn.os.path.isdir(
@@ -474,9 +453,7 @@ class TransparentWindow(Gtk.Window):
                     self.Ec.set_sensitive(True)
                     self.active = False
             else:
-                fn.os.unlink("/tmp/archlinux-logout.lock")
-                self.__exec_cmd(self.cmd_lock)
-                Gtk.main_quit()
+                self.execute_command(self.cmd_lock)
         elif data == self.binds.get("settings"):
             self.themes.grab_focus()
             self.popover.set_relative_to(self.Eset)
@@ -487,16 +464,15 @@ class TransparentWindow(Gtk.Window):
             self.popover2.show_all()
             self.popover2.popup()
         else:
-            fn.os.unlink("/tmp/archlinux-logout.lock")
-            fn.os.unlink("/tmp/archlinux-logout.pid")
-            Gtk.main_quit()
+            self.on_close(widget)
 
-    def __exec_cmd(self, cmdline):
+    def execute_command(self, cmdline):
+        self.hide()
+        self.display.flush()
         fn.os.system(cmdline)
+        Gtk.main_quit()
 
-    def on_close(self, widget, data):
-        fn.os.unlink("/tmp/archlinux-logout.lock")
-        fn.os.unlink("/tmp/archlinux-logout.pid")
+    def on_close(self, widget, data=None):
         Gtk.main_quit()
 
     def message_box(self, message, title):
@@ -519,21 +495,23 @@ class TransparentWindow(Gtk.Window):
 
 def signal_handler(sig, frame):
     print("\nArchLinux-Logout is Closing.")
-    fn.os.unlink("/tmp/archlinux-logout.lock")
-    fn.os.unlink("/tmp/archlinux-logout.pid")
-    Gtk.main_quit(0)
+    Gtk.main_quit()
 
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    if not fn.os.path.isfile("/tmp/archlinux-logout.lock"):
-        with open("/tmp/archlinux-logout.pid", "w") as f:
-            f.write(str(fn.os.getpid()))
-            f.close()
-        w = TransparentWindow()
-        w.show_all()
-        Gtk.main()
+    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        lock = open("/tmp/archlinux-logout.lock", "x")
+    except FileExistsError:
+        print("ArchLinux Logout is already open, or /tmp/archlinux-logout.lock is stale.")
     else:
-        print(
-            "ArchLinux-logout did not close properly. Remove /tmp/archlinux-logout.lock with sudo."
-        )
+        lock.close()
+        try:
+            with open("/tmp/archlinux-logout.pid", "w") as f:
+                f.write(str(fn.os.getpid()))
+            w = TransparentWindow()
+            w.show_all()
+            Gtk.main()
+        finally:
+            fn.cleanup()

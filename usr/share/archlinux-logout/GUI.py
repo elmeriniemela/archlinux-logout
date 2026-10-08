@@ -4,12 +4,8 @@
 
 
 def GUI(self, Gtk, GdkPixbuf, working_dir, os, Gdk, fn):
-    container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-    spacer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
     mainbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     mainbox2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-    mainbox4 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-    mainbox3 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     lblbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
 
     lbl = Gtk.Label(label="")
@@ -235,9 +231,8 @@ def GUI(self, Gtk, GdkPixbuf, working_dir, os, Gdk, fn):
             hbox1.pack_start(vbox2, False, False, 20)
         if button == "suspend":
             hbox1.pack_start(vbox3, False, False, 20)
-        if fn.sessionw != True:
-            if button == "lock":
-                hbox1.pack_start(vbox4, False, False, 20)
+        if button == "lock":
+            hbox1.pack_start(vbox4, False, False, 20)
         if button == "logout":
             hbox1.pack_start(vbox5, False, False, 20)
         if button == "hibernate":
@@ -369,9 +364,14 @@ def GUI(self, Gtk, GdkPixbuf, working_dir, os, Gdk, fn):
     hbox8 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
 
     plbl = Gtk.Label()
-    plbl.set_markup(
-        '<span size="large">You can change the lockscreen wallpaper\nwith <b>Archlinux BetterLockScreen</b></span>'
-    )
+    if fn.sessionw:
+        plbl.set_markup(
+            '<span size="large">Configure the Wayland lockscreen in\n<b>~/.config/hypr/hyprlock.conf</b></span>'
+        )
+    else:
+        plbl.set_markup(
+            '<span size="large">You can change the lockscreen wallpaper\nwith <b>Archlinux BetterLockScreen</b></span>'
+        )
 
     hbox8.pack_end(plbl, False, False, 10)
 

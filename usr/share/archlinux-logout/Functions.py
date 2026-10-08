@@ -7,10 +7,9 @@ import os
 from pathlib import Path
 import configparser
 
-envvar = os.environ["XDG_SESSION_TYPE"]
-sessionw = False
-if envvar == "wayland":
-    sessionw = True
+sessionw = os.environ.get("XDG_SESSION_TYPE") == "wayland" or bool(
+    os.environ.get("WAYLAND_DISPLAY")
+)
 
 home = os.path.expanduser("~")
 
@@ -56,9 +55,7 @@ def cache_bl(self, GLib, Gtk):
                 )
 
         GLib.idle_add(self.lbl_stat.set_text, "")
-        os.unlink("/tmp/archlinux-logout.lock")
-        os.system(self.cmd_lock)
-        Gtk.main_quit()
+        GLib.idle_add(self.execute_command, self.cmd_lock)
     else:
         print("not installed betterlockscreen.")
 
@@ -66,10 +63,16 @@ def cache_bl(self, GLib, Gtk):
 def get_config(self, Gdk, Gtk, config):
     try:
         self.parser = configparser.RawConfigParser()
-        self.parser.read(config)
+        # pacman may preserve an older /etc config and install new defaults as .pacnew.
+        if sessionw:
+            self.parser.read_dict({"commands-wayland": {
+                "lock": "loginctl lock-session",
+                "logout": "hyprctl dispatch 'hl.dsp.exit()'",
+            }})
+        self.parser.read([root_config, config])
 
         # Set some safe defaults
-        self.opacity = 60
+        self.opacity = 0.6
         self.show_on_monitor = 0  # always show on first monitor unless set in settings
 
         # Check if we're using HAL, and init it as required.
@@ -85,17 +88,13 @@ def get_config(self, Gdk, Gtk, config):
             if self.parser.has_option("settings", "show_on_monitor"):
                 self.show_on_monitor = self.parser.get("settings", "show_on_monitor")
 
-        if self.parser.has_section("commands"):
-            if self.parser.has_option("commands", "lock"):
-                self.cmd_lock = str(self.parser.get("commands", "lock"))
-            if self.parser.has_option("commands", "shutdown"):
-                self.cmd_shutdown = str(self.parser.get("commands", "shutdown"))
-            if self.parser.has_option("commands", "restart"):
-                self.cmd_restart = str(self.parser.get("commands", "restart"))
-            if self.parser.has_option("commands", "suspend"):
-                self.cmd_suspend = str(self.parser.get("commands", "suspend"))
-            if self.parser.has_option("commands", "hibernate"):
-                self.cmd_hibernate = str(self.parser.get("commands", "hibernate"))
+        sections = ["commands"]
+        if sessionw:
+            sections.append("commands-wayland")
+        for section in sections:
+            for action in ("lock", "logout", "shutdown", "restart", "suspend", "hibernate"):
+                if self.parser.has_option(section, action):
+                    setattr(self, "cmd_" + action, self.parser.get(section, action))
 
         if self.parser.has_section("binds"):
             if self.parser.has_option("binds", "lock"):
@@ -142,8 +141,9 @@ def get_config(self, Gdk, Gtk, config):
         raise ValueError(f"Could not load logout configuration: {config}") from e
 
 
-def _get_logout():
-    return "pkill awesome"
+def cleanup():
+    Path("/tmp/archlinux-logout.lock").unlink(missing_ok=True)
+    Path("/tmp/archlinux-logout.pid").unlink(missing_ok=True)
 
 
 def button_active(self, data, GdkPixbuf):
